@@ -127,7 +127,7 @@ final class Filler {
             if (upperRightSquares > SQUARES_TO_TIE)
                 return Double.NEGATIVE_INFINITY;
 
-            return (lowerLeftSquares - upperRightSquares) * (lowerLeftSquares + upperRightSquares);
+            return lowerLeftSquares - upperRightSquares;
             // if (lowerLeftSquares == SQUARES_TO_TIE && upperRightSquares == SQUARES_TO_TIE)
             //     return 0.0;
         }
