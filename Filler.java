@@ -141,12 +141,18 @@ final class Filler {
         return out;
     }
 
-    /** Minimax algorithm
+    static Result minimax(GameState initial, int maxDepth) {
+        return minimax(initial, maxDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, true);
+    }
+
+    /** Minimax algorithm with alpha-beta pruning
       * - fuel: we stop once this is 0 so we don't go too deep
+      * - alpha: we're able to pick a state with score at least this good
+      * - beta: our opponent forces us to pick a state with score at least this bad
       * - maximize: true iff it's our turn and we want to maximize the score, otherwise (false) means it's our opponent's
       *   turn, and he/she wants to minimize the score
       * Returns the best moves in _reverse_ order */
-    static Result minimax(GameState state, int fuel, boolean maximize) {
+    static Result minimax(GameState state, int fuel, double alpha, double beta, boolean maximize) {
         // Game's over
         if (state.lowerLeftSquares() > SQUARES_TO_TIE 
                 || state.upperRightSquares() > SQUARES_TO_TIE 
@@ -170,11 +176,14 @@ final class Filler {
                     continue;
                 GameState next = state.makeMove(c, 0, 0);
                 
-                Result afterMove = minimax(next, fuel - 1, false);
+                Result afterMove = minimax(next, fuel - 1, alpha, beta, false);
                 if (bestMoveForMe == null || afterMove.score() > resultFromBestMove.score()) {
                     bestMoveForMe = c;
                     resultFromBestMove = afterMove;
                 }
+                if (resultFromBestMove.score() >= beta) // this state is too good for us for our opponent to ever pick it
+                    break;
+                alpha = Math.max(alpha, resultFromBestMove.score());
             }
             
             return new Result(resultFromBestMove.score(), addToEnd(resultFromBestMove.bestMoves(), bestMoveForMe));
@@ -189,11 +198,14 @@ final class Filler {
                     continue;
                 GameState next = state.makeMove(c, HEIGHT - 1, WIDTH - 1);
 
-                Result afterMove = minimax(next, fuel - 1, true);
+                Result afterMove = minimax(next, fuel - 1, alpha, beta, true);
                 if (bestMoveForOpponent == null || afterMove.score() < resultFromBestMove.score()) {
                     bestMoveForOpponent = c;
                     resultFromBestMove = afterMove;
                 }
+                if (resultFromBestMove.score() <= alpha) // this state is too bad for us for us to ever pick it
+                    break;
+                beta = Math.min(beta, resultFromBestMove.score());
             }
             
             return new Result(resultFromBestMove.score(), addToEnd(resultFromBestMove.bestMoves(), bestMoveForOpponent));
@@ -220,7 +232,7 @@ final class Filler {
 
         // System.out.println(curr.countConnectedTiles(0, 0));
 
-        Result r = minimax(initial, 14, true);
+        Result r = minimax(initial, 14);
         System.out.println(r.score());
         
         boolean me = true;
