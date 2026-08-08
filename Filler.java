@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 final class Filler {
@@ -19,12 +20,12 @@ final class Filler {
 
         static Color fromEmoji(String s) {
             return switch (s) {
-                case "🟥" -> RED   ;
-                case "🟩" -> GREEN ;
-                case "🟨" -> YELLOW;
-                case "🟦" -> BLUE  ;
-                case "🟪" -> PURPLE;
-                case "⬛" -> BLACK ;
+                case "r", "R", "🟥" -> RED   ;
+                case "g", "G", "🟩" -> GREEN ;
+                case "y", "Y", "🟨" -> YELLOW;
+                case "b", "B", "🟦" -> BLUE  ;
+                case "p", "P", "🟪" -> PURPLE;
+                case "k", "K", "⬛" -> BLACK ;
                 default -> throw new IllegalArgumentException(s);
             };
         }
@@ -33,13 +34,15 @@ final class Filler {
     static final int HEIGHT = 7, WIDTH = 8,
                      TOTAL_SQUARES = HEIGHT * WIDTH,
                      SQUARES_TO_TIE = TOTAL_SQUARES / 2;
+    static final double WIN_SCORE = 1e9;
 
     /** 
      * - board: indexed from *bottom* row up, then right
+     * - ply: number of single-player turns
      */
-    record GameState(Color[][] board, int lowerLeftSquares, int upperRightSquares) {
-        GameState(Color[][] board) {
-            this(board, countConnectedTiles(board, 0, 0), countConnectedTiles(board, HEIGHT - 1, WIDTH - 1));
+    record GameState(Color[][] board, int ply, int lowerLeftSquares, int upperRightSquares) {
+        GameState(Color[][] board, int ply) {
+            this(board, ply, countConnectedTiles(board, 0, 0), countConnectedTiles(board, HEIGHT - 1, WIDTH - 1));
         }
 
         @Override
@@ -66,7 +69,7 @@ final class Filler {
                         .map(Color::fromEmoji)
                         .toArray(Color[]::new))
                 .toArray(Color[][]::new);
-            return new GameState(board);
+            return new GameState(board, 0);
         }
 
         /** Fresh copy */
@@ -81,7 +84,7 @@ final class Filler {
         GameState makeMove(Color c, int y, int x) {
             Color[][] tmp = copyBoard(this.board);
             fillAndCount(c, y, x, tmp, new boolean[HEIGHT][WIDTH]);
-            return new GameState(tmp);
+            return new GameState(tmp, this.ply + 1);
         }
 
         // TODO: compute count here as well
@@ -123,9 +126,9 @@ final class Filler {
         // and TODO
         double score() {
             if (lowerLeftSquares > SQUARES_TO_TIE)
-                return Double.POSITIVE_INFINITY;
+                return WIN_SCORE - this.ply; // incentivize winning early
             if (upperRightSquares > SQUARES_TO_TIE)
-                return Double.NEGATIVE_INFINITY;
+                return -(WIN_SCORE - this.ply); // or losing late, i.e. dragging out lost games I suppose
 
             return lowerLeftSquares - upperRightSquares;
             // if (lowerLeftSquares == SQUARES_TO_TIE && upperRightSquares == SQUARES_TO_TIE)
@@ -144,6 +147,8 @@ final class Filler {
     static Result minimax(GameState initial, int maxDepth) {
         return minimax(initial, maxDepth, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, true);
     }
+
+    record Child(Color c, GameState state) {}
 
     /** Minimax algorithm with alpha-beta pruning
       * - fuel: we stop once this is 0 so we don't go too deep
@@ -167,18 +172,23 @@ final class Filler {
         final Color currentColor2 = state.board()[HEIGHT - 1][WIDTH - 1];
 
         if (maximize) {
-            Color bestMoveForMe = null;
-            Result resultFromBestMove = new Result(Double.NEGATIVE_INFINITY, List.of());
-
+            List<Child> children = new ArrayList<>();
             for (Color c : Color.values()) {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
                 GameState next = state.makeMove(c, 0, 0);
-                
-                Result afterMove = minimax(next, fuel - 1, alpha, beta, false);
+                children.add(new Child(c, next));
+            }
+            // Sort children by the heuristic (TODO or another heuristic?)
+            children.sort(Comparator.comparingDouble(child -> ((Child)child).state().score()).reversed()); // best score first
+
+            Color bestMoveForMe = null;
+            Result resultFromBestMove = new Result(Double.NEGATIVE_INFINITY, List.of());
+            for (Child child : children) {
+                Result afterMove = minimax(child.state(), fuel - 1, alpha, beta, false);
                 if (bestMoveForMe == null || afterMove.score() > resultFromBestMove.score()) {
-                    bestMoveForMe = c;
+                    bestMoveForMe = child.c();
                     resultFromBestMove = afterMove;
                 }
                 if (resultFromBestMove.score() >= beta) // this state is too good for us for our opponent to ever pick it
@@ -189,18 +199,23 @@ final class Filler {
             return new Result(resultFromBestMove.score(), addToEnd(resultFromBestMove.bestMoves(), bestMoveForMe));
 
         } else {
-            Color bestMoveForOpponent = null;
-            Result resultFromBestMove = new Result(Double.POSITIVE_INFINITY, List.of());
-
+            List<Child> children = new ArrayList<>();
             for (Color c : Color.values()) {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
                 GameState next = state.makeMove(c, HEIGHT - 1, WIDTH - 1);
-
-                Result afterMove = minimax(next, fuel - 1, alpha, beta, true);
+                children.add(new Child(c, next));
+            }
+            // Sort children by the heuristic (TODO or another heuristic?)
+            children.sort(Comparator.comparingDouble(child -> ((Child)child).state().score())); // worst score first
+            
+            Color bestMoveForOpponent = null;
+            Result resultFromBestMove = new Result(Double.POSITIVE_INFINITY, List.of());
+            for (Child child : children) {
+                Result afterMove = minimax(child.state(), fuel - 1, alpha, beta, true);
                 if (bestMoveForOpponent == null || afterMove.score() < resultFromBestMove.score()) {
-                    bestMoveForOpponent = c;
+                    bestMoveForOpponent = child.c();
                     resultFromBestMove = afterMove;
                 }
                 if (resultFromBestMove.score() <= alpha) // this state is too bad for us for us to ever pick it
@@ -213,13 +228,13 @@ final class Filler {
     }
 
     static final String EXAMPLE = """
-        🟩🟥🟦🟪⬛🟦🟦🟦
-        🟪🟦🟨🟩🟥🟪🟦⬛
-        ⬛🟥🟩🟨🟦🟩⬛🟩
-        🟥⬛🟦🟥🟩🟪🟨🟪
-        🟩🟦⬛🟨🟪🟦🟩⬛
-        🟦🟪🟩🟥🟨🟥🟦🟪
-        ⬛⬛🟨🟩🟪🟩🟥⬛""";
+        ⬛🟥🟩🟪🟩🟨⬛🟨
+        🟪🟦🟥🟨🟥🟩🟪🟦
+        ⬛🟩🟦🟪🟨⬛🟦🟩
+        🟪🟨🟪🟩🟥🟦⬛🟥
+        🟩⬛🟩🟦🟨🟩🟥⬛
+        ⬛🟦🟪🟥🟩🟨🟦🟪
+        🟦🟪🟦⬛🟪🟦🟥🟩""";
 
     public static void main(String[] args) {
         GameState initial = GameState.parse(EXAMPLE);
@@ -232,7 +247,7 @@ final class Filler {
 
         // System.out.println(curr.countConnectedTiles(0, 0));
 
-        Result r = minimax(initial, 14);
+        Result r = minimax(initial, 24);
         System.out.println(r.score());
         
         boolean me = true;
