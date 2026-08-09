@@ -233,13 +233,13 @@ final class Filler {
     }
 
     static final String EXAMPLE = """
-        ⬛🟥🟩🟪🟩🟨⬛🟨
-        🟪🟦🟥🟨🟥🟩🟪🟦
-        ⬛🟩🟦🟪🟨⬛🟦🟩
-        🟪🟨🟪🟩🟥🟦⬛🟥
-        🟩⬛🟩🟦🟨🟩🟥⬛
-        ⬛🟦🟪🟥🟩🟨🟦🟪
-        🟦🟪🟦⬛🟪🟦🟥🟩""";
+        YGBRGKPP
+        GPYBPGPP
+        PKPGKPYK
+        YGRYPYBY
+        GKYKGRGK
+        KYGPYKPY
+        YYKRPRGB""";
 
     public static void main(String[] args) {
         GameState initial = GameState.parse(EXAMPLE);
