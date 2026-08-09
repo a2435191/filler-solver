@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -102,8 +103,12 @@ final class Filler {
                 fillAndCount(c, y, x - 1, next, visited);
         }
 
+        private static boolean[][] VISITED_SCRATCH = new boolean[HEIGHT][WIDTH];
+
         static int countConnectedTiles(Color[][] board, int y, int x) {
-            return countConnectedTiles(board, y, x, new boolean[HEIGHT][WIDTH]);
+            for (boolean[] row : VISITED_SCRATCH)
+                Arrays.fill(row, false);
+            return countConnectedTiles(board, y, x, VISITED_SCRATCH);
         }
 
         private static int countConnectedTiles(Color[][] board, int y, int x, boolean[][] visited) {
