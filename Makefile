@@ -1,15 +1,20 @@
 .PHONY: run clean profile
 
-Filler.class: Filler.java
-	javac Filler.java
+SOURCES := $(wildcard *.java)
+BUILD := build
+JAVA := java -ea -cp $(BUILD)
 
-run: Filler.class
-	java -ea Filler
+$(BUILD)/Filler.class: $(SOURCES)
+	javac -d $(BUILD) $(SOURCES)
+
+run: $(BUILD)/Filler.class
+	$(JAVA) Filler
 
 clean:
-	rm *.class
+	rm -rf $(BUILD)
 
-profile: Filler.class
-	time java -ea -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints\
+profile: $(BUILD)/Filler.class
+	time $(JAVA)\
+		-XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints\
     	-agentpath:/opt/homebrew/lib/libasyncProfiler.dylib=start,event=cpu,file=flamegraph.html\
     	Filler
