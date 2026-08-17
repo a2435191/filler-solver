@@ -107,7 +107,7 @@ final class Filler {
 
     public static void main(String[] args) {
         Color[][] initialBoard = Board.parse(EXAMPLE);
-        GameState initial = new GameState(initialBoard, 0);
+        GameState initial = GameState.computeFields(initialBoard, 0);
         System.out.println(Board.toString(initialBoard) + "\n");
 
         // GameState curr = initial;

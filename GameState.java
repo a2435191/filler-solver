@@ -5,15 +5,17 @@ import java.util.Arrays;
  *  i.e. each byte (of the lower seven bytes) in the long represents a row
  * - ply: number of single-player turns
  */
-record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRightColor) {
+record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRightColor, int lowerLeftSquares, int upperRightSquares) {
     static final double WIN_SCORE = 1e9;
 
-    GameState(long[] present, int ply, Color lowerLeftColor, Color upperRightColor) {
+    GameState(long[] present, int ply, Color lowerLeftColor, Color upperRightColor, int lowerLeftSquares, int upperRightSquares) {
         assert present.length == Color.N_VALUES;
         this.present = present;
         this.ply = ply;
         this.lowerLeftColor = lowerLeftColor;
         this.upperRightColor = upperRightColor;
+        this.lowerLeftSquares = lowerLeftSquares;
+        this.upperRightSquares = upperRightSquares;
     }
 
     static long[] toBits(Color[][] colors) {
@@ -59,8 +61,15 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
         return sb.toString();
     }
 
-    GameState(Color[][] colors, int ply) {
-        this(toBits(colors), ply, colors[0][0], colors[Board.HEIGHT - 1][Board.WIDTH - 1]);
+    private static final int LL_CORNER_IDX = 0, UR_CORNER_IDX = Board.WIDTH * Board.HEIGHT - 1;
+
+    static GameState computeFields(Color[][] colors, int ply) {
+        long[] bits = toBits(colors);
+        Color llColor = colors[0][0];
+        Color urColor = colors[Board.HEIGHT - 1][Board.WIDTH - 1];
+        int ll = Long.bitCount(connectedMask(bits[llColor.ordinal()], LL_CORNER_IDX));
+        int ur = Long.bitCount(connectedMask(bits[urColor.ordinal()], UR_CORNER_IDX));
+        return new GameState(bits, ply, llColor, urColor, ll, ur);
     }
 
     static {
@@ -94,31 +103,20 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
         byte newColor = (byte)c.ordinal();
         byte oldColor = (byte)(whichCorner ? lowerLeftColor : upperRightColor).ordinal();
 
-        int y = whichCorner ? 0 : (Board.HEIGHT - 1);
-        int x = whichCorner ? 0 : (Board.WIDTH - 1);
-        long changedColor = connectedMask(present[oldColor], y * 8 + x);
+        long changedColor = connectedMask(present[oldColor], whichCorner ? LL_CORNER_IDX : UR_CORNER_IDX);
         
         long[] next = Arrays.copyOf(present, Color.N_VALUES);
         next[oldColor] &= ~changedColor;
         next[newColor] |= changedColor;
+
+        int newColorCornerRegionSize = Long.bitCount(next[newColor]);
         
-        return new GameState(next, ply + 1, whichCorner ? c : lowerLeftColor, whichCorner ? upperRightColor : c);
-    }
-
-    int countConnectedTiles(boolean whichCorner) {
-        byte color = (byte)(whichCorner ? lowerLeftColor : upperRightColor).ordinal();
-        int y = whichCorner ? 0 : (Board.HEIGHT - 1);
-        int x = whichCorner ? 0 : (Board.WIDTH - 1);
-        long connected = connectedMask(present[color], y * 8 + x);
-        return Long.bitCount(connected);
-    }
-
-    int lowerLeftSquares() {
-        return countConnectedTiles(true);
-    }
-
-    int upperRightSquares() {
-        return countConnectedTiles(false);
+        return new GameState(next, ply + 1, 
+            whichCorner ? c : lowerLeftColor, 
+            whichCorner ? upperRightColor : c,
+            whichCorner ? newColorCornerRegionSize : lowerLeftSquares,
+            whichCorner ? upperRightSquares : newColorCornerRegionSize
+        );
     }
 
     // Heuristic: we want to reward us controlling more squares, punish our opponent controlling more squares,
