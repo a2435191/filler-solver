@@ -67,8 +67,8 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
         long[] bits = toBits(colors);
         Color llColor = colors[0][0];
         Color urColor = colors[Board.HEIGHT - 1][Board.WIDTH - 1];
-        long lowerLeftRegion = connectedMask(bits[llColor.ordinal()], LL_CORNER_IDX);
-        long upperRightRegion = connectedMask(bits[urColor.ordinal()], UR_CORNER_IDX);
+        long lowerLeftRegion = connectedMaskAtPoint(bits[llColor.ordinal()], LL_CORNER_IDX);
+        long upperRightRegion = connectedMaskAtPoint(bits[urColor.ordinal()], UR_CORNER_IDX);
         return new GameState(bits, ply, llColor, urColor, lowerLeftRegion, upperRightRegion);
     }
 
@@ -79,8 +79,9 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
     private static final long  LEFT_COLUMN = 0x01_01_01_01_01_01_01L,
                               RIGHT_COLUMN = 0x80_80_80_80_80_80_80L;
 
-    static long connectedMask(long l, int i) {
-        long connected = l & (1L << i);
+    /** Flood-fill region `l` (i.e. through its connected set bits), with some initial sub-graph (of l) */
+    static long connectedMask(long l, long initial) {
+        long connected = initial;
         while (true) { 
             // left neighbors are at lower indices, so from their perspective we are at higher indices,
             // meaning we need to right-shift ourselves back down. We're going to mask out any bits representing
@@ -98,6 +99,11 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
         }
     }
 
+    /** Like `connectedMask` but start with just a single-vertex initial graph */
+    static long connectedMaskAtPoint(long l, int initialPointIndex) {
+        return connectedMask(l, l & (1L << initialPointIndex));
+    }
+
     /** Everything connected (via the relation "has the same color as adjacent") to square [y, x] gets its color set to `c` */
     GameState makeMove(Color c, boolean whichCorner /* true iff lower-left, otherwise upper-right */) {
         byte newColor = (byte)c.ordinal();
@@ -111,7 +117,7 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
         next[newColor] |= cornerRegion;
 
         // Need to compute the next corner region (same corner as before, since we can't modify our opponent's corner region ever)
-        long nextCornerRegion = connectedMask(next[newColor], whichCorner ? LL_CORNER_IDX : UR_CORNER_IDX); // TODO start this from the existing cornerRegion
+        long nextCornerRegion = connectedMask(next[newColor], cornerRegion);
         
         return new GameState(next, ply + 1, 
             whichCorner ? c : lowerLeftColor, 
