@@ -3,7 +3,7 @@ import java.util.Arrays;
 
 /** Use a 1-D byte array to represent all the colors on the board. Uses eight bits per color. */
 final class PackedBoard8 extends Board {
-    private static final int LENGTH = TOTAL_SQUARES / 2; // length in bytes
+    private static final int LENGTH = TOTAL_SQUARES; // length in bytes
 
     private final byte[] arr;
 
