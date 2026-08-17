@@ -1,19 +1,14 @@
-abstract class Board {
+final class Board {
     static final int HEIGHT = 7, WIDTH = 8,
                      TOTAL_SQUARES = HEIGHT * WIDTH,
                      SQUARES_TO_TIE = TOTAL_SQUARES / 2;
-    
-    abstract Board copy();
-    abstract void set(int row, int col, Color c);
-    abstract Color get(int row, int col);
 
-    @Override
-    public final String toString() {
+    static final String toString(Color[][] colors) {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < HEIGHT; y++) {
             if (y != 0) sb.append('\n');
             for (int x = 0; x < WIDTH; x++) {
-                Color c = get(HEIGHT - 1 - y, x);
+                Color c = colors[HEIGHT - 1 - y][x];
                 if (c == null)
                     sb.append("? ");
                 else
@@ -23,12 +18,7 @@ abstract class Board {
         return sb.toString();
     }
 
-    final static Board mk(Color[][] arr) {
-        // return new PackedBoard4(arr);
-        return new PackedBoard8(arr);
-    }
-
-    final static Board parse(String s) {
+    final static Color[][] parse(String s) {
         Color[][] arr = s.lines().toList().reversed().stream()
             .map(line ->
                 line.codePoints()
@@ -36,7 +26,7 @@ abstract class Board {
                     .map(Color::fromEmoji)
                     .toArray(Color[]::new))
             .toArray(Color[][]::new);
-        return mk(arr);
+        return arr;
     }
 
     
