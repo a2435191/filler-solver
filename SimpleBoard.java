@@ -1,7 +1,7 @@
 
 
 /** Just implement `Board` in the naive way */
-class SimpleBoard extends Board {
+final class SimpleBoard extends Board {
     private final Color[][] arr;
 
     SimpleBoard(Color[][] arr) {

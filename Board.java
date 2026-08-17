@@ -23,6 +23,10 @@ abstract class Board {
         return sb.toString();
     }
 
+    final static Board mk(Color[][] arr) {
+        return new PackedBoard(arr); // TODO
+    }
+
     final static Board parse(String s) {
         Color[][] arr = s.lines().toList().reversed().stream()
             .map(line ->
@@ -31,7 +35,7 @@ abstract class Board {
                     .map(Color::fromEmoji)
                     .toArray(Color[]::new))
             .toArray(Color[][]::new);
-        return new SimpleBoard(arr);
+        return mk(arr);
     }
 
     
