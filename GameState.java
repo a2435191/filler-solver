@@ -49,10 +49,19 @@ record GameState(Color[][] board, int ply, int lowerLeftSquares, int upperRightS
         return out;
     }
 
+    private static boolean[][] VISITED_SCRATCH = new boolean[HEIGHT][WIDTH];
+    private static void clearScratch() {
+        for (boolean[] row : VISITED_SCRATCH)
+            Arrays.fill(row, false);
+    }
+
     /** Everything connected to square [y, x] gets its color set to `c` */
     GameState makeMove(Color c, int y, int x) {
         Color[][] tmp = copyBoard(this.board);
-        fillAndCount(c, y, x, tmp, new boolean[HEIGHT][WIDTH]);
+
+        clearScratch();
+        fillAndCount(c, y, x, tmp, VISITED_SCRATCH);
+        
         return new GameState(tmp, this.ply + 1);
     }
 
@@ -71,11 +80,8 @@ record GameState(Color[][] board, int ply, int lowerLeftSquares, int upperRightS
             fillAndCount(c, y, x - 1, next, visited);
     }
 
-    private static boolean[][] VISITED_SCRATCH = new boolean[HEIGHT][WIDTH];
-
     static int countConnectedTiles(Color[][] board, int y, int x) {
-        for (boolean[] row : VISITED_SCRATCH)
-            Arrays.fill(row, false);
+        clearScratch();
         return countConnectedTiles(board, y, x, VISITED_SCRATCH);
     }
 
