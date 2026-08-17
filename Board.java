@@ -24,7 +24,8 @@ abstract class Board {
     }
 
     final static Board mk(Color[][] arr) {
-        return new PackedBoard8(arr); // TODO
+        // return new PackedBoard4(arr);
+        return new PackedBoard8(arr);
     }
 
     final static Board parse(String s) {
