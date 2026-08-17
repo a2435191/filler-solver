@@ -28,17 +28,17 @@ final class Filler {
       * Returns the best moves in _reverse_ order */
     static Result minimax(GameState state, int fuel, double alpha, double beta, boolean maximize) {
         // Game's over
-        if (state.lowerLeftSquares() > GameState.SQUARES_TO_TIE 
-                || state.upperRightSquares() > GameState.SQUARES_TO_TIE 
-                || state.lowerLeftSquares() == GameState.SQUARES_TO_TIE && state.upperRightSquares() == GameState.SQUARES_TO_TIE)
+        if (state.lowerLeftSquares() > Board.SQUARES_TO_TIE 
+                || state.upperRightSquares() > Board.SQUARES_TO_TIE 
+                || state.lowerLeftSquares() == Board.SQUARES_TO_TIE && state.upperRightSquares() == Board.SQUARES_TO_TIE)
             return new Result(state.score(), List.of());
 
         if (fuel == 0)
             return new Result(state.score(), List.of()); // heuristic
             
 
-        final Color currentColor1 = state.board()[0][0];
-        final Color currentColor2 = state.board()[GameState.HEIGHT - 1][GameState.WIDTH - 1];
+        final Color currentColor1 = state.board().get(0, 0);
+        final Color currentColor2 = state.board().get(Board.HEIGHT - 1, Board.WIDTH - 1);
 
         if (maximize) {
             List<Child> children = new ArrayList<>();
@@ -73,7 +73,7 @@ final class Filler {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
-                GameState next = state.makeMove(c, GameState.HEIGHT - 1, GameState.WIDTH - 1);
+                GameState next = state.makeMove(c, Board.HEIGHT - 1, Board.WIDTH - 1);
                 children.add(new Child(c, next));
             }
             // Sort children by the heuristic (TODO or another heuristic?)
@@ -106,8 +106,9 @@ final class Filler {
         YYKRPRGB""";
 
     public static void main(String[] args) {
-        GameState initial = GameState.parse(EXAMPLE);
-        System.out.println(initial + "\n");
+        Board initialBoard = Board.parse(EXAMPLE);
+        GameState initial = new GameState(initialBoard, 0);
+        System.out.println(initialBoard + "\n");
 
         // GameState curr = initial;
         // curr = curr.makeMove(Color.BLACK, 0, 0);
@@ -116,7 +117,7 @@ final class Filler {
 
         // System.out.println(curr.countConnectedTiles(0, 0));
 
-        Result r = minimax(initial, 22);
+        Result r = minimax(initial, 24);
         System.out.println(r.score());
         
         boolean me = true;
