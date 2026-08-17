@@ -1,145 +1,9 @@
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
 final class Filler {
-    static enum Color {
-        RED, GREEN, YELLOW, BLUE, PURPLE, BLACK;
-
-        String toEmoji() {
-            return switch (this) {
-                case RED    -> "🟥";
-                case GREEN  -> "🟩";
-                case YELLOW -> "🟨";
-                case BLUE   -> "🟦";
-                case PURPLE -> "🟪";
-                case BLACK  -> "⬛";
-            };
-        }
-
-        static Color fromEmoji(String s) {
-            return switch (s) {
-                case "r", "R", "🟥" -> RED   ;
-                case "g", "G", "🟩" -> GREEN ;
-                case "y", "Y", "🟨" -> YELLOW;
-                case "b", "B", "🟦" -> BLUE  ;
-                case "p", "P", "🟪" -> PURPLE;
-                case "k", "K", "⬛" -> BLACK ;
-                default -> throw new IllegalArgumentException(s);
-            };
-        }
-    }
-
-    static final int HEIGHT = 7, WIDTH = 8,
-                     TOTAL_SQUARES = HEIGHT * WIDTH,
-                     SQUARES_TO_TIE = TOTAL_SQUARES / 2;
-    static final double WIN_SCORE = 1e9;
-
-    /** 
-     * - board: indexed from *bottom* row up, then right
-     * - ply: number of single-player turns
-     */
-    record GameState(Color[][] board, int ply, int lowerLeftSquares, int upperRightSquares) {
-        GameState(Color[][] board, int ply) {
-            this(board, ply, countConnectedTiles(board, 0, 0), countConnectedTiles(board, HEIGHT - 1, WIDTH - 1));
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            for (int y = 0; y < HEIGHT; y++) {
-                if (y != 0) sb.append('\n');
-                Color[] row = board[HEIGHT - 1 - y];
-                for (int x = 0; x < WIDTH; x++) {
-                    if (row[x] == null)
-                        sb.append("? ");
-                    else
-                        sb.append(row[x].toEmoji());
-                }
-            }
-            return sb.toString();
-        }
-
-        static GameState parse(String s) {
-            Color[][] board = s.lines().toList().reversed().stream()
-                .map(line ->
-                    line.codePoints()
-                        .mapToObj(Character::toString)
-                        .map(Color::fromEmoji)
-                        .toArray(Color[]::new))
-                .toArray(Color[][]::new);
-            return new GameState(board, 0);
-        }
-
-        /** Fresh copy */
-        static Color[][] copyBoard(Color[][] other) {
-            Color[][] out = new Color[HEIGHT][WIDTH];
-            for (int y = 0; y < HEIGHT; y++)
-                System.arraycopy(other[y], 0, out[y], 0, WIDTH);
-            return out;
-        }
-
-        /** Everything connected to square [y, x] gets its color set to `c` */
-        GameState makeMove(Color c, int y, int x) {
-            Color[][] tmp = copyBoard(this.board);
-            fillAndCount(c, y, x, tmp, new boolean[HEIGHT][WIDTH]);
-            return new GameState(tmp, this.ply + 1);
-        }
-
-        // TODO: compute count here as well
-        private void fillAndCount(Color c, int y, int x, Color[][] next, boolean[][] visited) {
-            next[y][x] = c;
-            visited[y][x] = true;
-
-            if (y + 1 < HEIGHT && !visited[y + 1][x] && board[y + 1][x] == board[y][x])
-                fillAndCount(c, y + 1, x, next, visited);
-            if (y - 1 >= 0 && !visited[y - 1][x] && board[y - 1][x] == board[y][x])
-                fillAndCount(c, y - 1, x, next, visited);
-            if (x + 1 < WIDTH && !visited[y][x + 1] && board[y][x + 1] == board[y][x])
-                fillAndCount(c, y, x + 1, next, visited);
-            if (x - 1 >= 0 && !visited[y][x - 1] && board[y][x - 1] == board[y][x])
-                fillAndCount(c, y, x - 1, next, visited);
-        }
-
-        private static boolean[][] VISITED_SCRATCH = new boolean[HEIGHT][WIDTH];
-
-        static int countConnectedTiles(Color[][] board, int y, int x) {
-            for (boolean[] row : VISITED_SCRATCH)
-                Arrays.fill(row, false);
-            return countConnectedTiles(board, y, x, VISITED_SCRATCH);
-        }
-
-        private static int countConnectedTiles(Color[][] board, int y, int x, boolean[][] visited) {
-            int sum = 1; 
-            visited[y][x] = true;
-
-            if (y + 1 < HEIGHT && !visited[y + 1][x] && board[y + 1][x] == board[y][x])
-                sum += countConnectedTiles(board, y + 1, x, visited);
-            if (y - 1 >= 0 && !visited[y - 1][x] && board[y - 1][x] == board[y][x])
-                sum += countConnectedTiles(board, y - 1, x, visited);
-            if (x + 1 < WIDTH && !visited[y][x + 1] && board[y][x + 1] == board[y][x])
-                sum += countConnectedTiles(board, y, x + 1, visited);
-            if (x - 1 >= 0 && !visited[y][x - 1] && board[y][x - 1] == board[y][x])
-                sum += countConnectedTiles(board, y, x - 1, visited);
-
-            return sum;
-        }
-
-        // Heuristic: we want to reward us controlling more squares, punish our opponent controlling more squares,
-        // and TODO
-        double score() {
-            if (lowerLeftSquares > SQUARES_TO_TIE)
-                return WIN_SCORE - this.ply; // incentivize winning early
-            if (upperRightSquares > SQUARES_TO_TIE)
-                return -(WIN_SCORE - this.ply); // or losing late, i.e. dragging out lost games I suppose
-
-            return lowerLeftSquares - upperRightSquares;
-            // if (lowerLeftSquares == SQUARES_TO_TIE && upperRightSquares == SQUARES_TO_TIE)
-            //     return 0.0;
-        }
-    }
 
     record Result(double score, List<Color> bestMoves){}
 
@@ -164,9 +28,9 @@ final class Filler {
       * Returns the best moves in _reverse_ order */
     static Result minimax(GameState state, int fuel, double alpha, double beta, boolean maximize) {
         // Game's over
-        if (state.lowerLeftSquares() > SQUARES_TO_TIE 
-                || state.upperRightSquares() > SQUARES_TO_TIE 
-                || state.lowerLeftSquares() == SQUARES_TO_TIE && state.upperRightSquares() == SQUARES_TO_TIE)
+        if (state.lowerLeftSquares() > GameState.SQUARES_TO_TIE 
+                || state.upperRightSquares() > GameState.SQUARES_TO_TIE 
+                || state.lowerLeftSquares() == GameState.SQUARES_TO_TIE && state.upperRightSquares() == GameState.SQUARES_TO_TIE)
             return new Result(state.score(), List.of());
 
         if (fuel == 0)
@@ -174,7 +38,7 @@ final class Filler {
             
 
         final Color currentColor1 = state.board()[0][0];
-        final Color currentColor2 = state.board()[HEIGHT - 1][WIDTH - 1];
+        final Color currentColor2 = state.board()[GameState.HEIGHT - 1][GameState.WIDTH - 1];
 
         if (maximize) {
             List<Child> children = new ArrayList<>();
@@ -209,7 +73,7 @@ final class Filler {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
-                GameState next = state.makeMove(c, HEIGHT - 1, WIDTH - 1);
+                GameState next = state.makeMove(c, GameState.HEIGHT - 1, GameState.WIDTH - 1);
                 children.add(new Child(c, next));
             }
             // Sort children by the heuristic (TODO or another heuristic?)
@@ -252,7 +116,7 @@ final class Filler {
 
         // System.out.println(curr.countConnectedTiles(0, 0));
 
-        Result r = minimax(initial, 24);
+        Result r = minimax(initial, 22);
         System.out.println(r.score());
         
         boolean me = true;
