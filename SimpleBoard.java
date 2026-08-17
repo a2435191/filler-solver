@@ -2,7 +2,7 @@
 
 /** Just implement `Board` in the naive way */
 class SimpleBoard extends Board {
-    private Color[][] arr;
+    private final Color[][] arr;
 
     SimpleBoard(Color[][] arr) {
         this.arr = arr;
