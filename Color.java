@@ -27,6 +27,8 @@ enum Color {
     // Avoid making a copy by calling Color.values() all the time
     private static final Color[] ALL = Color.values();
 
+    static final int N_VALUES = ALL.length;
+
     static Color fromOrdinal(byte i) {
         return ALL[i];
     }

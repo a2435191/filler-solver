@@ -37,8 +37,8 @@ final class Filler {
             return new Result(state.score(), List.of()); // heuristic
             
 
-        final Color currentColor1 = state.board().get(0, 0);
-        final Color currentColor2 = state.board().get(Board.HEIGHT - 1, Board.WIDTH - 1);
+        final Color currentColor1 = state.lowerLeftColor();
+        final Color currentColor2 = state.upperRightColor();
 
         if (maximize) {
             List<Child> children = new ArrayList<>();
@@ -46,7 +46,7 @@ final class Filler {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
-                GameState next = state.makeMove(c, 0, 0);
+                GameState next = state.makeMove(c, true);
                 children.add(new Child(c, next));
             }
             // Sort children by the heuristic (TODO or another heuristic?)
@@ -73,7 +73,7 @@ final class Filler {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
-                GameState next = state.makeMove(c, Board.HEIGHT - 1, Board.WIDTH - 1);
+                GameState next = state.makeMove(c, false);
                 children.add(new Child(c, next));
             }
             // Sort children by the heuristic (TODO or another heuristic?)
@@ -106,9 +106,9 @@ final class Filler {
         YYKRPRGB""";
 
     public static void main(String[] args) {
-        Board initialBoard = Board.parse(EXAMPLE);
-        GameState initial = new GameState(initialBoard, 0);
-        System.out.println(initialBoard + "\n");
+        Color[][] initialBoard = Board.parse(EXAMPLE);
+        GameState initial = GameState.computeFields(initialBoard, 0);
+        System.out.println(Board.toString(initialBoard) + "\n");
 
         // GameState curr = initial;
         // curr = curr.makeMove(Color.BLACK, 0, 0);
