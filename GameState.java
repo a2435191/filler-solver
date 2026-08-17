@@ -103,13 +103,16 @@ record GameState(long[] present, int ply, Color lowerLeftColor, Color upperRight
         byte newColor = (byte)c.ordinal();
         byte oldColor = (byte)(whichCorner ? lowerLeftColor : upperRightColor).ordinal();
 
-        long changedColor = connectedMask(present[oldColor], whichCorner ? LL_CORNER_IDX : UR_CORNER_IDX);
+        int idx = whichCorner ? LL_CORNER_IDX : UR_CORNER_IDX;
+        long changedColor = connectedMask(present[oldColor], idx);
         
         long[] next = Arrays.copyOf(present, Color.N_VALUES);
         next[oldColor] &= ~changedColor;
         next[newColor] |= changedColor;
 
-        int newColorCornerRegionSize = Long.bitCount(next[newColor]);
+        // we need how big the corner region we just created is. This includes, e.g., all squares of color `newColor`
+        // bordering the `changedColor` region, i.e. we want to count how many squares are connected under the new coloring
+        int newColorCornerRegionSize = Long.bitCount(connectedMask(next[newColor], idx));
         
         return new GameState(next, ply + 1, 
             whichCorner ? c : lowerLeftColor, 
