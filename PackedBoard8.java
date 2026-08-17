@@ -2,16 +2,16 @@
 import java.util.Arrays;
 
 /** Use a 1-D byte array to represent all the colors on the board. Uses eight bits per color. */
-final class PackedBoard extends Board {
-    private static final int LENGTH = TOTAL_SQUARES; // length in bytes
+final class PackedBoard8 extends Board {
+    private static final int LENGTH = TOTAL_SQUARES / 2; // length in bytes
 
     private final byte[] arr;
 
-    private PackedBoard(byte[] arr) {
+    private PackedBoard8(byte[] arr) {
         this.arr = arr;
     }
 
-    PackedBoard(Color[][] colors) {
+    PackedBoard8(Color[][] colors) {
         this(new byte[LENGTH]);
         for (int i = 0; i < HEIGHT; i++)
             for (int j = 0; j < WIDTH; j++)
@@ -20,7 +20,7 @@ final class PackedBoard extends Board {
 
     @Override
     Board copy() {
-        return new PackedBoard(Arrays.copyOf(arr, LENGTH));
+        return new PackedBoard8(Arrays.copyOf(arr, LENGTH));
     }
 
     @Override
