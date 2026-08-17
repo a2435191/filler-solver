@@ -42,7 +42,7 @@ final class Filler {
 
         if (maximize) {
             List<Child> children = new ArrayList<>();
-            for (Color c : Color.values()) {
+            for (Color c : Color.ALL) {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
@@ -69,7 +69,7 @@ final class Filler {
 
         } else {
             List<Child> children = new ArrayList<>();
-            for (Color c : Color.values()) {
+            for (Color c : Color.ALL) {
                 // Can't do the color in either of the corners
                 if (c == currentColor1 || c == currentColor2)
                     continue;
@@ -117,7 +117,7 @@ final class Filler {
 
         // System.out.println(curr.countConnectedTiles(0, 0));
 
-        Result r = minimax(initial, 24);
+        Result r = minimax(initial, 30);
         System.out.println(r.score());
         
         boolean me = true;
